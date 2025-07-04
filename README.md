@@ -69,7 +69,7 @@ pip install -r requirements.txt
 python start.py --mode streamlit
 
 # 或啟動 FastAPI 模式
-python start.py --mode flask
+python start.py --mode fast
 ```
 
 ---
