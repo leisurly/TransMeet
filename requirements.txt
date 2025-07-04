@@ -1,0 +1,38 @@
+# TransMeet 核心依賴
+transformers>=4.35.0
+datasets[audio]>=2.14.0
+accelerate>=0.24.0
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Whisper 相關
+openai-whisper>=20231117
+
+# Streamlit 介面
+streamlit>=1.28.0
+streamlit-option-menu>=0.3.6
+
+# FastAPI Web 框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+jinja2>=3.1.0
+
+# 音訊處理
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# 說話者識別
+pyannote.audio>=3.1.0
+pyannote.core>=5.0.0
+
+# LLM 相關
+openai>=1.0.0
+
+# 檔案處理
+python-multipart>=0.0.6
+
+# 其他工具
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+plotly>=5.15.0 
