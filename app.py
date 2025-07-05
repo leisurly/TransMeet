@@ -20,6 +20,10 @@ import json
 from datetime import datetime
 import uvicorn
 
+# 載入環境變數
+from dotenv import load_dotenv
+load_dotenv()
+
 # 添加 src 目錄到 Python 路徑
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))

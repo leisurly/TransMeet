@@ -59,6 +59,22 @@ TransMeet/
 
 ## 🧪 快速開始（Quick Start）
 
+### 環境設定
+
+1. **複製環境變數範例檔案**：
+```bash
+cp .env.example .env
+```
+
+2. **編輯 .env 檔案**：
+```bash
+# 編輯 .env 檔案，填入你的 OpenAI API 金鑰
+nano .env
+```
+
+**重要**：如果你要使用 LLM 摘要分析功能，需要設定 `OPENAI_API_KEY`。
+如果沒有設定，基本的語音轉文字功能仍可正常運作。
+
 ### 使用 Docker（推薦）
 
 ```bash
