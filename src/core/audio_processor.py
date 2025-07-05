@@ -1,6 +1,14 @@
-"""
-音訊處理核心類別
-負責音訊檔案的載入、預處理和基本分析
+"""音訊處理核心類別。
+
+此模組提供音訊檔案的載入、預處理和基本分析功能。
+主要類別 AudioProcessor 負責處理音訊檔案，包括格式驗證、
+載入、預處理、特徵提取等功能。
+
+Typical usage example:
+    processor = AudioProcessor()
+    result = processor.process_audio_file("audio.wav")
+    if result["success"]:
+        audio_data = result["audio_data"]
 """
 
 import torch
@@ -13,23 +21,41 @@ from utils.audio_utils import AudioUtils
 
 
 class AudioProcessor:
-    """音訊處理核心類別"""
+    """音訊處理核心類別。
     
-    def __init__(self):
-        """初始化音訊處理器"""
+    負責音訊檔案的載入、預處理和基本分析。提供完整的音訊處理流程，
+    包括格式驗證、載入、預處理、特徵提取等功能。
+    
+    Attributes:
+        config: 配置設定物件
+        device: 計算裝置 (CPU/GPU)
+        audio_utils: 音訊工具類別
+    """
+    
+    def __init__(self) -> None:
+        """初始化音訊處理器。
+        
+        設定配置、計算裝置和音訊工具類別。
+        """
         self.config = Config()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.audio_utils = AudioUtils()
     
     def process_audio_file(self, filepath: str) -> Dict[str, Any]:
-        """
-        處理音訊檔案
+        """處理音訊檔案。
+        
+        完整的音訊處理流程，包括格式驗證、載入、預處理、
+        語音段落檢測和特徵提取。
         
         Args:
             filepath: 音訊檔案路徑
             
         Returns:
-            處理結果字典
+            包含處理結果的字典，成功時包含音訊資料和相關資訊，
+            失敗時包含錯誤訊息。
+            
+        Raises:
+            ValueError: 當音訊格式不支援時
         """
         try:
             # 驗證檔案格式
@@ -77,8 +103,9 @@ class AudioProcessor:
             }
     
     def _preprocess_audio(self, audio: np.ndarray) -> np.ndarray:
-        """
-        預處理音訊
+        """預處理音訊資料。
+        
+        對音訊資料進行正規化和靜音移除等預處理操作。
         
         Args:
             audio: 原始音訊資料
@@ -95,8 +122,10 @@ class AudioProcessor:
         return audio
     
     def split_audio_for_processing(self, audio: np.ndarray, sr: int) -> List[np.ndarray]:
-        """
-        將音訊分割為適合處理的片段
+        """將音訊分割為適合處理的片段。
+        
+        根據配置的片段時長將音訊分割為多個片段，
+        便於後續的語音轉文字處理。
         
         Args:
             audio: 音訊資料
@@ -109,15 +138,17 @@ class AudioProcessor:
         return self.audio_utils.split_audio(audio, sr, chunk_duration)
     
     def get_audio_statistics(self, audio: np.ndarray, sr: int) -> Dict[str, Any]:
-        """
-        取得音訊統計資訊
+        """取得音訊統計資訊。
+        
+        計算音訊的基本統計資訊，包括時長、樣本數、
+        振幅統計和能量等。
         
         Args:
             audio: 音訊資料
             sr: 採樣率
             
         Returns:
-            統計資訊字典
+            包含統計資訊的字典
         """
         duration = len(audio) / sr
         

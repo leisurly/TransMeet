@@ -1,70 +1,76 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TransMeet - 簡化版智能會議記錄語音辨識系統
-整合 FastAPI 和現代化首頁介面
+TransMeet FastAPI 應用程式
+整合 OOP 架構的語音轉錄功能和現代化 Web 介面
 """
 
 import os
 import sys
 from pathlib import Path
-from typing import Optional
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from typing import Optional, List
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.requests import Request
 from pydantic import BaseModel
+import tempfile
 import json
 from datetime import datetime
 import uvicorn
-import whisper
-import librosa
-import numpy as np
-import tempfile
-import shutil
 
-# 建立必要的目錄
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("results", exist_ok=True)
+# 添加 src 目錄到 Python 路徑
+src_path = Path(__file__).parent / "src"
+sys.path.insert(0, str(src_path))
+
+from core.audio_processor import AudioProcessor
+from core.transcription_service import TranscriptionService
+from core.speaker_detection import SpeakerDetection
+from core.llm_summarizer import LLMSummarizer
+from config.settings import Config
+from utils.file_utils import FileUtils
+
 
 class ProcessRequest(BaseModel):
     """處理請求模型"""
     filename: str
     language: str = "zh"
-    enable_speaker_detection: bool = False
-    enable_llm_analysis: bool = False
+    enable_speaker_detection: bool = True
+    enable_llm_analysis: bool = True
     summary_type: str = "meeting"
 
-class TransMeetApp:
-    """TransMeet 簡化版應用程式"""
+
+class TransMeetFastAPI:
+    """TransMeet FastAPI 應用程式類別"""
     
     def __init__(self):
-        """初始化應用程式"""
+        """初始化 FastAPI 應用程式"""
         self.app = FastAPI(
             title="TransMeet - 智能會議記錄語音辨識系統",
-            description="簡化版語音轉文字系統",
+            description="基於 OOP 架構的智能語音轉文字系統，整合說話者識別和 LLM 摘要分析",
             version="1.0.0",
             docs_url="/docs",
             redoc_url="/redoc"
         )
         
-        # 設定模板
-        self.templates = Jinja2Templates(directory="templates")
+        self.config = Config()
+        self.file_utils = FileUtils()
         
-        # 載入 Whisper 模型
-        try:
-            self.whisper_model = whisper.load_model("base")
-            print("✅ Whisper 模型載入成功")
-        except Exception as e:
-            print(f"⚠️ Whisper 模型載入失敗: {e}")
-            self.whisper_model = None
+        # 初始化核心服務
+        self.audio_processor = AudioProcessor()
+        self.transcription_service = TranscriptionService()
+        self.speaker_detection = SpeakerDetection()
+        self.llm_summarizer = LLMSummarizer()
+        
+        # 設定模板和靜態檔案
+        self.templates = Jinja2Templates(directory="templates")
         
         # 註冊路由
         self._register_routes()
     
     def _register_routes(self):
-        """註冊路由"""
+        """註冊 FastAPI 路由"""
         
         @self.app.get("/", response_class=HTMLResponse)
         async def index(request: Request):
@@ -76,17 +82,18 @@ class TransMeetApp:
             """處理音訊檔案上傳"""
             try:
                 # 驗證檔案格式
-                allowed_extensions = ['.wav', '.mp3', '.m4a', '.flac', '.ogg']
-                file_ext = Path(file.filename).suffix.lower()
-                
-                if file_ext not in allowed_extensions:
+                if not self.config.validate_audio_format(file.filename):
                     raise HTTPException(status_code=400, detail="不支援的檔案格式")
                 
                 # 儲存檔案
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 filename = f"{timestamp}_{file.filename}"
-                filepath = Path("uploads") / filename
+                filepath = self.config.get_upload_path() / filename
                 
+                # 確保目錄存在
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                
+                # 儲存檔案
                 with open(filepath, "wb") as buffer:
                     content = await file.read()
                     buffer.write(content)
@@ -101,51 +108,59 @@ class TransMeetApp:
                 raise HTTPException(status_code=500, detail=str(e))
         
         @self.app.post("/api/process")
-        async def process_audio(request: ProcessRequest):
+        async def process_audio(request: ProcessRequest, background_tasks: BackgroundTasks):
             """處理音訊檔案"""
             try:
-                filepath = Path("uploads") / request.filename
+                filepath = self.config.get_upload_path() / request.filename
                 
                 if not filepath.exists():
                     raise HTTPException(status_code=404, detail="檔案不存在")
                 
-                if not self.whisper_model:
-                    raise HTTPException(status_code=500, detail="Whisper 模型未載入")
+                # 1. 音訊處理
+                audio_result = self.audio_processor.process_audio_file(str(filepath))
                 
-                # 使用 Whisper 進行轉錄
-                result = self.whisper_model.transcribe(
+                if not audio_result["success"]:
+                    raise HTTPException(status_code=500, detail=audio_result['error'])
+                
+                # 2. 語音轉文字
+                transcription_result = self.transcription_service.transcribe_audio(
                     str(filepath),
-                    language=request.language,
-                    task="transcribe"
+                    request.language
                 )
                 
-                # 準備結果
-                transcription_text = result["text"]
-                segments = result["segments"]
+                if not transcription_result["success"]:
+                    raise HTTPException(status_code=500, detail=transcription_result['error'])
                 
-                # 生成摘要（簡單版本）
-                summary = self._generate_simple_summary(transcription_text)
+                # 3. 說話者識別
+                speaker_result = None
+                if request.enable_speaker_detection:
+                    speaker_result = self.speaker_detection.detect_speakers(
+                        audio_result["audio_data"],
+                        audio_result["sample_rate"]
+                    )
+                
+                # 4. LLM 摘要分析
+                summary_result = None
+                if request.enable_llm_analysis:
+                    transcription_text = transcription_result["transcription"]["full_text"]
+                    summary_result = self.llm_summarizer.generate_summary(
+                        transcription_text,
+                        request.summary_type
+                    )
                 
                 # 儲存結果
                 results = {
-                    'transcription': {
-                        'full_text': transcription_text,
-                        'segments': segments
-                    },
-                    'summary': summary,
-                    'audio_info': {
-                        'filename': request.filename,
-                        'duration': segments[-1]['end'] if segments else 0
-                    },
+                    'transcription': transcription_result,
+                    'speaker_detection': speaker_result,
+                    'summary': summary_result,
+                    'audio_info': audio_result.get('file_info'),
                     'timestamp': datetime.now().isoformat()
                 }
                 
                 # 儲存到檔案
                 results_filename = f"results_{timestamp}_{request.filename}.json"
-                results_path = Path("results") / results_filename
-                
-                with open(results_path, 'w', encoding='utf-8') as f:
-                    json.dump(results, f, ensure_ascii=False, indent=2)
+                results_path = self.config.get_results_path() / results_filename
+                self.file_utils.save_json(results, results_path)
                 
                 return {
                     'success': True,
@@ -160,7 +175,7 @@ class TransMeetApp:
         async def download_file(filename: str):
             """下載檔案"""
             try:
-                filepath = Path("results") / filename
+                filepath = self.config.get_results_path() / filename
                 
                 if not filepath.exists():
                     raise HTTPException(status_code=404, detail="檔案不存在")
@@ -181,8 +196,7 @@ class TransMeetApp:
                 'status': 'healthy',
                 'timestamp': datetime.now().isoformat(),
                 'version': '1.0.0',
-                'service': 'TransMeet',
-                'whisper_loaded': self.whisper_model is not None
+                'service': 'TransMeet FastAPI'
             }
         
         @self.app.get("/api/info")
@@ -191,39 +205,27 @@ class TransMeetApp:
             return {
                 'name': 'TransMeet',
                 'version': '1.0.0',
-                'description': '簡化版智能會議記錄語音辨識系統',
+                'description': '智能會議記錄語音辨識系統',
                 'features': [
                     '高精度語音轉文字',
-                    '多語言支援',
-                    '現代化 Web 介面',
-                    '檔案下載功能'
+                    '說話者識別',
+                    'LLM 摘要分析',
+                    '多格式輸出支援'
                 ],
-                'supported_formats': ['.wav', '.mp3', '.m4a', '.flac', '.ogg']
+                'supported_formats': self.config.AUDIO_SETTINGS['supported_formats']
             }
-    
-    def _generate_simple_summary(self, text: str) -> str:
-        """生成簡單摘要"""
-        if len(text) < 100:
-            return text
-        
-        # 簡單的摘要邏輯：取前200字
-        summary = text[:200]
-        if len(text) > 200:
-            summary += "..."
-        
-        return summary
 
 
 def main():
     """主函數"""
-    app = TransMeetApp()
+    app = TransMeetFastAPI()
     
     # 從環境變數取得配置
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', 8000))
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
     
-    print(f"🎤 啟動 TransMeet 應用程式...")
+    print(f"🎤 啟動 TransMeet FastAPI 應用程式...")
     print(f"🌐 服務地址: http://{host}:{port}")
     print(f"📚 API 文件: http://{host}:{port}/docs")
     print(f"🔧 除錯模式: {debug}")

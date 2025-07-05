@@ -1,6 +1,14 @@
-"""
-LLM 摘要分析類別
-負責使用大型語言模型進行語音轉文字內容的摘要和分析
+"""LLM 摘要分析類別。
+
+此模組提供使用大型語言模型進行語音轉文字內容的摘要和分析功能。
+主要類別 LLMSummarizer 負責生成摘要、提取關鍵重點、情感分析和
+行動項目生成等。
+
+Typical usage example:
+    summarizer = LLMSummarizer()
+    result = summarizer.generate_summary(transcription_text, "meeting")
+    if result["success"]:
+        summary = result["summary"]
 """
 
 import os
@@ -13,10 +21,22 @@ from utils.file_utils import FileUtils
 
 
 class LLMSummarizer:
-    """LLM 摘要分析類別"""
+    """LLM 摘要分析類別。
     
-    def __init__(self):
-        """初始化 LLM 摘要器"""
+    負責使用 OpenAI GPT 模型進行語音轉文字內容的智能分析，
+    包括摘要生成、關鍵重點提取、情感分析和行動項目生成等。
+    
+    Attributes:
+        config: 配置設定物件
+        file_utils: 檔案工具類別
+        api_key: OpenAI API 金鑰
+    """
+    
+    def __init__(self) -> None:
+        """初始化 LLM 摘要器。
+        
+        設定配置、檔案工具和 API 金鑰。
+        """
         self.config = Config()
         self.file_utils = FileUtils()
         self.api_key = self.config.get_llm_api_key()
@@ -25,15 +45,18 @@ class LLMSummarizer:
             openai.api_key = self.api_key
     
     def generate_summary(self, transcription_text: str, summary_type: str = "general") -> Dict[str, Any]:
-        """
-        生成轉錄內容摘要
+        """生成轉錄內容摘要。
+        
+        使用 OpenAI GPT 模型對轉錄文字進行智能摘要，支援多種
+        摘要類型，包括一般摘要、會議記錄、訪談和演講等。
         
         Args:
             transcription_text: 轉錄文字內容
             summary_type: 摘要類型 (general, meeting, interview, lecture)
             
         Returns:
-            摘要結果字典
+            包含摘要結果的字典，成功時包含摘要內容和相關資訊，
+            失敗時包含錯誤訊息。
         """
         try:
             if not self.api_key:
@@ -74,14 +97,17 @@ class LLMSummarizer:
             }
     
     def extract_key_points(self, transcription_text: str) -> Dict[str, Any]:
-        """
-        提取關鍵重點
+        """提取關鍵重點。
+        
+        從轉錄文字中提取關鍵重點，包括主要議題、重要決策、
+        行動項目、關鍵數據和參與者重點等。
         
         Args:
             transcription_text: 轉錄文字內容
             
         Returns:
-            關鍵重點結果
+            包含關鍵重點的字典，成功時包含結構化的重點資訊，
+            失敗時包含錯誤訊息。
         """
         try:
             if not self.api_key:
@@ -132,14 +158,17 @@ class LLMSummarizer:
             }
     
     def analyze_sentiment(self, transcription_text: str) -> Dict[str, Any]:
-        """
-        分析情感傾向
+        """分析情感傾向。
+        
+        分析轉錄文字的情感傾向和語氣，包括整體情感、情感強度、
+        主要情感特徵和參與者互動模式等。
         
         Args:
             transcription_text: 轉錄文字內容
             
         Returns:
-            情感分析結果
+            包含情感分析結果的字典，成功時包含詳細的情感分析，
+            失敗時包含錯誤訊息。
         """
         try:
             if not self.api_key:
@@ -190,14 +219,17 @@ class LLMSummarizer:
             }
     
     def generate_action_items(self, transcription_text: str) -> Dict[str, Any]:
-        """
-        生成行動項目清單
+        """生成行動項目清單。
+        
+        從轉錄文字中提取和生成行動項目清單，包括待辦事項、
+        責任分配和時程安排等。
         
         Args:
             transcription_text: 轉錄文字內容
             
         Returns:
-            行動項目結果
+            包含行動項目的字典，成功時包含結構化的行動項目清單，
+            失敗時包含錯誤訊息。
         """
         try:
             if not self.api_key:

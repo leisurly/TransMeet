@@ -1,6 +1,14 @@
-"""
-語音轉文字服務類別
-負責使用 Whisper 模型進行語音辨識
+"""語音轉文字服務類別。
+
+此模組提供使用 Whisper 模型進行語音辨識的功能。
+主要類別 TranscriptionService 負責載入 Whisper 模型、
+執行語音轉文字、格式化結果和生成字幕等功能。
+
+Typical usage example:
+    service = TranscriptionService()
+    result = service.transcribe_audio("audio.wav", language="zh")
+    if result["success"]:
+        text = result["transcription"]["full_text"]
 """
 
 import torch
@@ -13,24 +21,41 @@ from utils.file_utils import FileUtils
 
 
 class TranscriptionService:
-    """語音轉文字服務類別"""
+    """語音轉文字服務類別。
     
-    def __init__(self):
-        """初始化轉錄服務"""
+    負責使用 Whisper 模型進行語音辨識，提供完整的語音轉文字功能，
+    包括模型載入、轉錄執行、結果格式化和字幕生成等。
+    
+    Attributes:
+        config: 配置設定物件
+        device: 計算裝置 (CPU/GPU)
+        model: Whisper 模型實例
+        file_utils: 檔案工具類別
+    """
+    
+    def __init__(self) -> None:
+        """初始化轉錄服務。
+        
+        設定配置、計算裝置和檔案工具類別。
+        """
         self.config = Config()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = None
         self.file_utils = FileUtils()
     
     def load_model(self, model_name: Optional[str] = None) -> bool:
-        """
-        載入 Whisper 模型
+        """載入 Whisper 模型。
+        
+        載入指定的 Whisper 模型到記憶體中，支援 GPU 加速。
         
         Args:
             model_name: 模型名稱，預設使用配置中的模型
             
         Returns:
             是否載入成功
+            
+        Raises:
+            Exception: 當模型載入失敗時
         """
         try:
             if model_name is None:
@@ -43,15 +68,21 @@ class TranscriptionService:
             return False
     
     def transcribe_audio(self, audio_path: str, language: Optional[str] = None) -> Dict[str, Any]:
-        """
-        轉錄音訊檔案
+        """轉錄音訊檔案。
+        
+        使用 Whisper 模型對音訊檔案進行語音轉文字處理，
+        支援多語言和時間戳記功能。
         
         Args:
             audio_path: 音訊檔案路徑
             language: 語言代碼，預設使用配置中的語言
             
         Returns:
-            轉錄結果字典
+            包含轉錄結果的字典，成功時包含轉錄文字和相關資訊，
+            失敗時包含錯誤訊息。
+            
+        Raises:
+            RuntimeError: 當無法載入 Whisper 模型時
         """
         try:
             if self.model is None:
@@ -87,15 +118,17 @@ class TranscriptionService:
             }
     
     def transcribe_with_timestamps(self, audio_path: str, language: Optional[str] = None) -> Dict[str, Any]:
-        """
-        轉錄音訊並包含時間戳記
+        """轉錄音訊並包含詳細時間戳記。
+        
+        執行語音轉文字並生成包含單詞級時間戳記的詳細結果，
+        適用於字幕生成和精確時間定位。
         
         Args:
             audio_path: 音訊檔案路徑
             language: 語言代碼
             
         Returns:
-            包含時間戳記的轉錄結果
+            包含詳細時間戳記的轉錄結果字典
         """
         try:
             if self.model is None:
@@ -131,15 +164,17 @@ class TranscriptionService:
             }
     
     def _format_transcription_result(self, result: Dict, audio_path: str) -> Dict[str, Any]:
-        """
-        格式化轉錄結果
+        """格式化轉錄結果。
+        
+        將 Whisper 的原始轉錄結果格式化為標準格式，
+        包含完整文字、段落資訊和置信度等。
         
         Args:
             result: Whisper 轉錄結果
             audio_path: 音訊檔案路徑
             
         Returns:
-            格式化後的結果
+            格式化後的結果字典
         """
         return {
             "full_text": result["text"].strip(),
@@ -157,15 +192,17 @@ class TranscriptionService:
         }
     
     def _format_timestamp_result(self, result: Dict, audio_path: str) -> Dict[str, Any]:
-        """
-        格式化時間戳記結果
+        """格式化時間戳記結果。
+        
+        將 Whisper 的轉錄結果格式化為包含單詞級時間戳記的詳細格式，
+        適用於字幕生成和精確時間定位。
         
         Args:
             result: Whisper 轉錄結果
             audio_path: 音訊檔案路徑
             
         Returns:
-            格式化後的時間戳記結果
+            格式化後的時間戳記結果字典
         """
         segments = []
         

@@ -1,6 +1,13 @@
-"""
-說話者識別類別
-負責識別和區分不同的說話者
+"""說話者識別類別。
+
+此模組提供說話者識別和區分功能。主要類別 SpeakerDetection 負責
+從音訊中識別不同的說話者，包括特徵提取、聚類分析和時間軸生成等。
+
+Typical usage example:
+    detector = SpeakerDetection()
+    result = detector.detect_speakers(audio_data, sample_rate)
+    if result["success"]:
+        speakers = result["speaker_clusters"]
 """
 
 import numpy as np
@@ -12,23 +19,37 @@ from utils.audio_utils import AudioUtils
 
 
 class SpeakerDetection:
-    """說話者識別類別"""
+    """說話者識別類別。
     
-    def __init__(self):
-        """初始化說話者識別器"""
+    負責從音訊中識別和區分不同的說話者。提供完整的說話者識別流程，
+    包括語音段落檢測、特徵提取、聚類分析和時間軸生成等。
+    
+    Attributes:
+        config: 配置設定物件
+        audio_utils: 音訊工具類別
+    """
+    
+    def __init__(self) -> None:
+        """初始化說話者識別器。
+        
+        設定配置和音訊工具類別。
+        """
         self.config = Config()
         self.audio_utils = AudioUtils()
     
     def detect_speakers(self, audio_data: np.ndarray, sr: int) -> Dict[str, Any]:
-        """
-        檢測說話者
+        """檢測說話者。
+        
+        從音訊資料中識別和區分不同的說話者，包括語音段落檢測、
+        特徵提取和聚類分析。
         
         Args:
-            audio_data: 音訊資料
+            audio_data: 音訊資料陣列
             sr: 採樣率
             
         Returns:
-            說話者檢測結果
+            包含說話者檢測結果的字典，成功時包含語音段落、特徵、
+            聚類結果和估計說話者數量，失敗時包含錯誤訊息。
         """
         try:
             # 檢測語音段落
@@ -58,16 +79,18 @@ class SpeakerDetection:
     
     def _extract_speaker_features(self, audio_data: np.ndarray, sr: int, 
                                 speech_segments: List[Tuple[float, float]]) -> List[Dict[str, Any]]:
-        """
-        提取說話者特徵
+        """提取說話者特徵。
+        
+        從語音段落中提取用於說話者識別的特徵，包括頻譜特徵
+        和說話者特定特徵。
         
         Args:
-            audio_data: 音訊資料
+            audio_data: 音訊資料陣列
             sr: 採樣率
-            speech_segments: 語音段落列表
+            speech_segments: 語音段落時間列表
             
         Returns:
-            特徵列表
+            包含特徵資訊的字典列表
         """
         features = []
         
@@ -96,15 +119,16 @@ class SpeakerDetection:
         return features
     
     def _calculate_speaker_specific_features(self, audio_segment: np.ndarray, sr: int) -> Dict[str, float]:
-        """
-        計算說話者特定特徵
+        """計算說話者特定特徵。
+        
+        計算用於說話者識別的特定特徵，包括能量、音調估計和語速等。
         
         Args:
             audio_segment: 音訊片段
             sr: 採樣率
             
         Returns:
-            說話者特徵字典
+            包含說話者特徵的字典
         """
         # 基本特徵
         rms_energy = np.sqrt(np.mean(audio_segment**2))
@@ -129,14 +153,16 @@ class SpeakerDetection:
         }
     
     def _cluster_speakers(self, features: List[Dict[str, Any]]) -> List[List[int]]:
-        """
-        聚類說話者（簡化版本）
+        """聚類說話者（簡化版本）。
+        
+        基於特徵相似度將語音段落聚類為不同的說話者。
+        使用簡化的聚類算法，適用於基本的說話者識別需求。
         
         Args:
             features: 特徵列表
             
         Returns:
-            聚類結果
+            聚類結果，每個子列表包含屬於同一說話者的特徵索引
         """
         if len(features) <= 1:
             return [[0]] if features else []
@@ -171,15 +197,16 @@ class SpeakerDetection:
         return clusters
     
     def _calculate_similarity(self, feature1: Dict[str, Any], feature2: Dict[str, Any]) -> float:
-        """
-        計算兩個特徵的相似度
+        """計算兩個特徵的相似度。
+        
+        基於頻譜特徵計算兩個語音片段的相似度，用於說話者聚類。
         
         Args:
-            feature1: 第一個特徵
-            feature2: 第二個特徵
+            feature1: 第一個特徵字典
+            feature2: 第二個特徵字典
             
         Returns:
-            相似度分數 (0-1)
+            相似度分數 (0-1)，1 表示完全相同，0 表示完全不同
         """
         # 提取頻譜特徵進行比較
         spec1 = feature1["spectral_features"]
