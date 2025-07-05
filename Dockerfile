@@ -12,16 +12,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 複製依賴檔案
-COPY requirements.txt .
+COPY requirements_simple.txt .
 
 # 安裝 Python 依賴
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_simple.txt
 
 # 複製應用程式程式碼
-COPY . .
+COPY app.py .
+COPY templates/ templates/
 
 # 創建必要的目錄
-RUN mkdir -p uploads results models
+RUN mkdir -p uploads results
 
 # 設定環境變數
 ENV HOST=0.0.0.0
@@ -36,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
 # 啟動命令
-CMD ["python", "fastapi_app.py"]
+CMD ["python", "app.py"]

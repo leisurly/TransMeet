@@ -8,8 +8,8 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple, Any
 from pathlib import Path
 
-from ..config.settings import Config
-from ..utils.audio_utils import AudioUtils
+from config.settings import Config
+from utils.audio_utils import AudioUtils
 
 
 class AudioProcessor:

@@ -294,6 +294,11 @@ models/
 # 保留測試音檔
 !raw_data/
 
+# 簡化版檔案
+!app.py
+!requirements_simple.txt
+!run.sh
+
 # API Keys and Secrets
 .env.local
 .env.production

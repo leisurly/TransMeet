@@ -11,12 +11,12 @@ from pathlib import Path
 from typing import Dict, Any
 
 # 導入核心模組
-from ..core.audio_processor import AudioProcessor
-from ..core.transcription_service import TranscriptionService
-from ..core.speaker_detection import SpeakerDetection
-from ..core.llm_summarizer import LLMSummarizer
-from ..config.settings import Config
-from ..utils.file_utils import FileUtils
+from core.audio_processor import AudioProcessor
+from core.transcription_service import TranscriptionService
+from core.speaker_detection import SpeakerDetection
+from core.llm_summarizer import LLMSummarizer
+from config.settings import Config
+from utils.file_utils import FileUtils
 
 
 class BreezeASRApp:

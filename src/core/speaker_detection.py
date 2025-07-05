@@ -7,8 +7,8 @@ import numpy as np
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 
-from ..config.settings import Config
-from ..utils.audio_utils import AudioUtils
+from config.settings import Config
+from utils.audio_utils import AudioUtils
 
 
 class SpeakerDetection:

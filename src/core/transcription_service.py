@@ -8,8 +8,8 @@ import whisper
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from ..config.settings import Config
-from ..utils.file_utils import FileUtils
+from config.settings import Config
+from utils.file_utils import FileUtils
 
 
 class TranscriptionService:
